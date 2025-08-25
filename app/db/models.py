@@ -1,0 +1,8 @@
+INCIDENTS_TABLE="""
+CREATE TABLE IF NOT EXISTS incidents(
+    incident_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    incident_number TEXT UNIQUE NOT NULL,
+    issue TEXT NOT NULL,
+    solution TEXT NOT NULL
+)
+"""
