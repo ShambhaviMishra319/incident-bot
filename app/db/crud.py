@@ -1,5 +1,8 @@
 from .database import get_connection
 from .models import INCIDENTS_TABLE
+from app.ai.embeddings import get_embeddings
+from app.ai import search
+
 
 def init_db():
     con=get_connection() #open connection to db
@@ -14,6 +17,9 @@ def add_incident(incident_number:str,issue:str,solution:str):
     cursor.execute("INSERT INTO incidents (incident_number, issue, solution) VALUES (?,?,?)",(incident_number, issue, solution))
     con.commit()
     con.close()
+    text=issue+" "+solution
+    embedding=get_embeddings(text)
+    search.add_to_index(embedding,incident_number)
 
 def get_incident_by_id(incident_number:str):
     con=get_connection()

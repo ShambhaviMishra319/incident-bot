@@ -1,28 +1,34 @@
+# app/chatbot/bot.py
 from app.db import crud
 from app.ai.embeddings import get_embeddings
-from app.ai.search import build_index, search_index
-import numpy as np
+from app.ai import search
 
-# Step 1: Load incidents from DB
-def load_incidents():
-    incidents = crud.get_all_incidents()  # [(id, number, issue, solution), ...]
-    issues = [i[2] for i in incidents]   # index 2 = issue
-    ids = [i[0] for i in incidents]      # index 0 = incident_id
-    return incidents, issues, ids
+# Keep FAISS index in memory
+index = None
+ids = []
+incidents = []
 
-# Step 2: Build FAISS index from DB
+
 def init_search_index():
-    incidents, issues, ids = load_incidents()
-    embeddings = [get_embeddings(issue) for issue in issues]
-    index = build_index(embeddings, ids)
-    return index, incidents, ids
+    """Build FAISS index once from DB (at startup or reset)."""
+    global index, ids, incidents
+    incidents = crud.get_all_incidents()
+    texts = [i[2] + " " + i[3] for i in incidents]  # issue + solution
+    ids = [i[1] for i in incidents]  # incident_number
+    embeddings = [get_embeddings(t) for t in texts]
+    index = search.build_index(embeddings, ids)
 
-# Step 3: Query pipeline
-def handle_new_issue(new_issue, index, incidents, ids, top_k=3):
+
+def handle_new_issue(new_issue, top_k=3):
+    """Search already built FAISS index."""
+    global index, incidents, ids
+    if index is None:
+        init_search_index()
+
     query_vec = get_embeddings(new_issue)
-    results = search_index(query_vec, top_k=top_k)  # returns indices in FAISS index
-    similar_incidents = []
+    results = search.search_index(query_vec, top_k=top_k)  # returns FAISS indices
 
+    similar_incidents = []
     for idx in results[0]:
         if idx < len(ids):  # safeguard
             incident = incidents[idx]
@@ -33,16 +39,3 @@ def handle_new_issue(new_issue, index, incidents, ids, top_k=3):
             })
 
     return similar_incidents
-
-def add_incident_to_index(new_incident, index, incidents, ids):
-    # Compute embedding for the new issue
-    embedding, _ = get_embeddings(new_incident['issue'])
-    
-    # Add to FAISS index
-    index.add(np.array([embedding]).astype('float32'))
-    
-    # Update local lists
-    ids.append(new_incident['incident_id'])
-    incidents.append(new_incident)
-    
-    return index, incidents, ids
