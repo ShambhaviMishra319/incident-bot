@@ -20,17 +20,17 @@ def init_search_index():
 
 
 def handle_new_issue(new_issue, top_k=3):
-    """Search already built FAISS index."""
     global index, incidents, ids
     if index is None:
         init_search_index()
 
     query_vec = get_embeddings(new_issue)
-    results = search.search_index(query_vec, top_k=top_k)  # returns FAISS indices
+    results = search.search_index(query_vec, top_k=top_k)  # returns incident_numbers
 
     similar_incidents = []
-    for idx in results[0]:
-        if idx < len(ids):  # safeguard
+    for incident_id in results:
+        if incident_id in ids:
+            idx = ids.index(incident_id)  # find index of that incident
             incident = incidents[idx]
             similar_incidents.append({
                 "incident_number": incident[1],

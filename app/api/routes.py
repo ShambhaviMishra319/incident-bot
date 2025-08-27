@@ -38,11 +38,18 @@ def query_incident(request: QueryRequest):
         except Exception:
             raise HTTPException(status_code=400, detail="top_k must be an integer")
 
+        print(f"DEBUG: type(top_k)={type(top_k)}, value={top_k}")
+        print(f"DEBUG: issue={request.issue}")
+
         results = bot.handle_new_issue(request.issue, top_k=top_k)
+        print("DEBUG results before sort:", results)
 
         if not results:
             return {"answer": "Sorry, I couldn’t find anything relevant."}
 
         return {"matches": results}
     except Exception as e:
+        import traceback
+        traceback.print_exc()   # ✅ will show full error in terminal
         raise HTTPException(status_code=400, detail=str(e))
+
