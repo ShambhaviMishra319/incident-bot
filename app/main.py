@@ -1,14 +1,11 @@
-# app/main.py
 from fastapi import FastAPI
-from app.api.routes import router
 from app.db import crud
+from app.api.routes import router
 
-app = FastAPI(title="Incident Bot API")
+app=FastAPI(title="Incident Bot API")
 
-# Initialize DB on startup
 @app.on_event("startup")
 def startup_event():
     crud.init_db()
 
-# Include all routes
 app.include_router(router)
